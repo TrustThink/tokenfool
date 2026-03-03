@@ -17,8 +17,6 @@ def _infer_special_tokens_from_attn(N: int) -> int:
                 return specials
     return 1
 
-# Taken and adapted from:
-# https://github.com/GATECH-EIC/Patch-Fool/blob/main/main.py
 
 #TODO: add tqdm
 def PatchFool(
@@ -44,6 +42,101 @@ def PatchFool(
         mild_l_2=0.0,
         device=None,
 ):
+    """
+    Perform the Patch-Fool adversarial attack on a Transformer-based classifier, taken and adapted from the original implementation at:
+    https://github.com/GATECH-EIC/Patch-Fool/blob/main/main.py
+
+    PatchFool is a patch-level adversarial attack designed for Vision
+    Transformers. It selects one or more image patches and optimizes a 
+    perturbation confined to those patches. Optionally, it supports sparse pixel selection within patches and attention-guided gradient alignment (PCGrad).
+
+    The attack performs gradient ascent on cross-entropy loss, optionally
+    combined with an attention-based loss, under optional L2 or L-inf 
+    constraints in normalized input space.
+
+    Parameters
+    ----------
+    model : TransformerClassifier
+        Model implementing the TransformerClassifier protocol:
+            - logits(x) -> (B, C)
+            - logits_and_attn(x) -> (logits, attn_list)
+        where each attention tensor has shape (B, heads, N, N).
+
+    x : torch.Tensor
+        Input tensor of shape (B, C, H, W), normalized using (mu, std).
+
+    y : torch.Tensor, optional
+        Ground-truth labels of shape (B,). If None, model predictions are used
+        as pseudo-labels.
+
+    mu : tuple[float]
+        Channel-wise dataset mean used for normalization.
+
+    std : tuple[float]
+        Channel-wise dataset standard deviation used for normalization.
+
+    patch_size : int
+        Spatial size (in pixels) of each square patch.
+
+    num_patch : int
+        Number of patches to attack.
+
+    sparse_pixel_num : int
+        If > 0, enables sparse pixel attack within selected patches using a
+        learnable mask that selects the top-k pixels.
+
+    patch_select : {"Rand", "Saliency", "Attn"}
+        Patch selection strategy:
+        - "Rand": random patch indices.
+        - "Saliency": largest gradient magnitude over patches.
+        - "Attn": highest attention scores from a selected layer.
+
+    attack_mode : {"CE_loss", "Attention"}
+        - "CE_loss": optimize cross-entropy only.
+        - "Attention": combine CE with attention alignment loss.
+
+    atten_select : int
+        Attention layer index used for patch selection (when
+        `patch_select="Attn"`).
+
+    atten_loss_weight : float
+        Weight applied to attention-based loss terms.
+
+    iters : int
+        Number of attack optimization iterations.
+
+    learnable_mask_stop : int
+        Iteration at which learnable sparse mask stops updating.
+
+    lr : float
+        Learning rate for perturbation optimizer.
+
+    step_size : int
+        Step interval for learning rate scheduler.
+
+    gamma : float
+        Learning rate decay factor.
+
+    mild_l_inf : float
+        L-inf constraint radius. Applied per-channel in
+        normalized space as epsilon / std. Set to 0 to disable.
+
+    mild_l_2 : float
+        L2 constraint radius. Applied per-channel in
+        normalized space as radius / std. Set to 0 to disable.
+
+    device : torch.device, optional
+        Device for computation. Defaults to `x.device`.
+
+    Returns
+    -------
+    x_adv : torch.Tensor
+        Adversarial examples of shape (B, C, H, W).
+
+    mask : torch.Tensor
+        Binary mask of shape (B, 1, H, W) indicating perturbed patch regions.
+
+    """
     if device is None:
         device = x.device
     x = x.to(device)

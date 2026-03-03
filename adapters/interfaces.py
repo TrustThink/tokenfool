@@ -16,7 +16,7 @@ class TransformerClassifier(Protocol):
         """
         Returns:
             logits: (B, C)
-            attn_list: List[L] of (B, heads, N, N)
+            attn_list: List of (B, heads, N, N)
         """
 
     def tokens(self, x: torch.Tensor) -> torch.Tensor:
