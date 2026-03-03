@@ -17,6 +17,9 @@ def _infer_special_tokens_from_attn(N: int) -> int:
                 return specials
     return 1
 
+# Taken and adapted from:
+# https://github.com/GATECH-EIC/Patch-Fool/blob/main/main.py
+
 #TODO: add tqdm
 def PatchFool(
         model: TransformerClassifier,  
@@ -232,10 +235,24 @@ def PatchFool(
             learnable_mask.data += 1e-6
             learnable_mask.data *= mask
 
-        # (Your original code did NOT enforce mild_l_inf / mild_l_2 inside the loop;
-        # if you want strict congruence, keep it that way. If you intended constraints,
-        # you can add them here.)
-        #TODO
+        # l2 constraint
+        if mild_l_2 != 0.0:
+            radius = (mild_l_2 / std_t).view(1, x.size(1), 1, 1)  
+            perturbation = (delta.detach() - original_img) * mask  
+            l2 = torch.linalg.norm(perturbation.view(perturbation.size(0), perturbation.size(1), -1), dim=-1)  
+            radius_bc = radius.view(1, x.size(1)).repeat(l2.size(0), 1)  
+            scale = radius_bc / (l2 + 1e-12)
+            scale[l2 < radius_bc] = 1.0
+            scale = scale.view(scale.size(0), scale.size(1), 1, 1) 
+
+            delta.data = original_img + perturbation * scale
+
+        # l_inf constraint
+        if mild_l_inf != 0.0:
+            epsilon = mild_l_inf / std_t 
+            delta.data = clamp(delta, original_img - epsilon, original_img + epsilon)
+
+        delta.data = clamp(delta, (0 - mu_t) / std_t, (1 - mu_t) / std_t)
 
     # -------------------------
     # Create adversarial example
