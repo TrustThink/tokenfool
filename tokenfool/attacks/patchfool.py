@@ -3,8 +3,8 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
-from attacks.utils import clamp, PCGrad
-from adapters.interfaces import TransformerClassifier
+from tokenfool.attacks.utils import clamp, PCGrad
+from tokenfool.adapters.interfaces import TransformerClassifier
 
 
 def _infer_special_tokens_from_attn(N: int) -> int:
