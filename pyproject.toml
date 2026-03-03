@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tokenfool"
+version = "0.1.0"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "torch",
+  "numpy",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["tokenfool*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
