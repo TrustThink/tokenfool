@@ -12,6 +12,14 @@ dependencies = [
   "numpy",
 ]
 
+[project.optional-dependencies]
+dev = [
+  "pytest",
+  "timm",
+  "torchvision",
+  "matplotlib",
+]
+
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["tokenfool*"]
