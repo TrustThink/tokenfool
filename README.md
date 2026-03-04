@@ -21,3 +21,28 @@ Stage 2: Detection transformer support
 
 
 ![Architecture diagram](architecture.png)
+
+
+## Development
+
+1. Clone the repository   
+(**External contributors**: fork the repository first, then clone your fork)
+```bash
+git clone https://github.com/TrustThink/tokenfool.git
+cd tokenfool
+```
+2. (Recommended) Create a virtual environment
+
+3. Install the project in editable mode with development dependencies
+```bash
+pip install -e ".[dev]"
+```
+
+4. Run tests
+```bash
+pytest
+```
+
+5. Make changes on a new branch, including tests if necessary
+
+6. Open a Pull Request
