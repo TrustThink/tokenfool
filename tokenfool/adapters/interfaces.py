@@ -1,5 +1,6 @@
-from typing import Protocol, List, Tuple
+from typing import Protocol, List, Tuple, Dict
 import torch
+import torch.nn as nn
 
 
 class TransformerClassifier(Protocol):
@@ -30,3 +31,20 @@ class TransformerClassifier(Protocol):
     @property
     def cls_index(self) -> int:
         ...
+
+
+
+class HookableTransformerClassifier(TransformerClassifier, Protocol):
+    """
+    Transformer classifier that exposes internal modules requiered for gradient-hook based attacks.
+    """
+
+    def hook_modules(self) -> Dict[str, List[nn.Module]]:
+        """
+        Return modules that support gradient hooks.
+
+        Required keys for ATT:
+            "attn_drop"
+            "qkv"
+            "mlp"
+        """

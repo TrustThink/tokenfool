@@ -44,6 +44,15 @@ class VisionTransformerClassifier:
         self._patch_if_needed()
         tokens, attn_list = self.model.forward_features(x)
         return tokens, attn_list
+    
+    def hook_modules(self):
+        self._patch_if_needed()
+        blocks = self.model.blocks
+        return {
+            "attn_drop": [b.attn.attn_drop for b in blocks],
+            "qkv": [b.attn.qkv for b in blocks],
+            "mlp": [b.mlp for b in blocks],
+        }
 
     # -------------------------
     # Internal patching
@@ -163,5 +172,4 @@ class VisionTransformerClassifier:
             return logits, attn_list
 
         m.forward = forward_collect.__get__(m, type(m))
-
         self._patched = True
