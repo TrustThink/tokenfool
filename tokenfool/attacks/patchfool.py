@@ -3,6 +3,11 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
+try: # optional dependency for progress bar
+    from tqdm.auto import tqdm
+except ImportError:
+    tqdm = None
+
 from tokenfool.attacks.utils import clamp, PCGrad
 from tokenfool.adapters.interfaces import TransformerClassifier
 
@@ -18,7 +23,6 @@ def _infer_special_tokens_from_attn(N: int) -> int:
     return 1
 
 
-#TODO: add tqdm
 def PatchFool(
         model: TransformerClassifier,  
         x: torch.Tensor,
@@ -41,6 +45,7 @@ def PatchFool(
         mild_l_inf=0.0,
         mild_l_2=0.0,
         device=None,
+        progress=False,
 ):
     """
     Perform the Patch-Fool adversarial attack on a Transformer-based classifier, taken and adapted from the original implementation at:
@@ -127,6 +132,9 @@ def PatchFool(
 
     device : torch.device, optional
         Device for computation. Defaults to `x.device`.
+    
+    progress : bool
+        If True, display a progress bar during attack iterations.
 
     Returns
     -------
@@ -241,10 +249,14 @@ def PatchFool(
 
     target_shift = specials
 
+    num_iter = range(iters)
+    if progress and tqdm is not None:
+        iterator = tqdm(num_iter, desc="PatchFool")
+
     # -------------------------
     # Attack optimization loop
     # -------------------------
-    for iter in range(iters):
+    for iter in iterator:
         opt.zero_grad(set_to_none=True)
         if sparse_pixel_num != 0 and mask_opt is not None:
             mask_opt.zero_grad(set_to_none=True)

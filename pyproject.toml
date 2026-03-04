@@ -18,6 +18,8 @@ dev = [
   "timm",
   "torchvision",
   "matplotlib",
+  "tqdm",
+  "ipywidgets",
 ]
 
 [tool.setuptools.packages.find]
