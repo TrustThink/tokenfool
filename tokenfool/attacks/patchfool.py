@@ -249,9 +249,9 @@ def PatchFool(
 
     target_shift = specials
 
-    num_iter = range(iters)
+    iterator = range(iters)
     if progress and tqdm is not None:
-        iterator = tqdm(num_iter, desc="PatchFool")
+        iterator = tqdm(iterator, desc="PatchFool")
 
     # -------------------------
     # Attack optimization loop
