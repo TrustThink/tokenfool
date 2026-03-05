@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import List, Tuple
+from typing import List, Tuple, Dict
 
 import torch
 import copy
@@ -45,14 +45,54 @@ class VisionTransformerClassifier:
         tokens, attn_list = self.model.forward_features(x)
         return tokens, attn_list
     
-    def hook_modules(self):
+    def hook_modules(self) -> Dict[str, List[torch.nn.Module]]:
+        """
+        Hook targets for timm ViT/DeiT-style blocks.
+
+        Keys expected by ATT:
+        - "attn_drop": block.attn.attn_drop
+        - "qkv":       block.attn.qkv
+        - "mlp":       block.mlp
+        """
         self._patch_if_needed()
-        blocks = self.model.blocks
+        m = self.model
+
+        # Basic structural validation for timm ViT-like models
+        if not hasattr(m, "blocks"):
+            raise TypeError("ATT requires a ViT/DeiT-style model with .blocks")
+
+        attn_drop_mods: List[torch.nn.Module] = []
+        qkv_mods: List[torch.nn.Module] = []
+        mlp_mods: List[torch.nn.Module] = []
+
+        for i, blk in enumerate(m.blocks):
+            if not hasattr(blk, "attn") or not hasattr(blk.attn, "qkv"):
+                raise TypeError(f"Block {i} missing blk.attn.qkv (not a supported ViT/DeiT layout)")
+            if not hasattr(blk.attn, "attn_drop"):
+                raise TypeError(f"Block {i} missing blk.attn.attn_drop (not a supported ViT/DeiT layout)")
+            if not hasattr(blk, "mlp"):
+                raise TypeError(f"Block {i} missing blk.mlp (not a supported ViT/DeiT layout)")
+
+            attn_drop_mods.append(blk.attn.attn_drop)
+            qkv_mods.append(blk.attn.qkv)
+            mlp_mods.append(blk.mlp)
+
         return {
-            "attn_drop": [b.attn.attn_drop for b in blocks],
-            "qkv": [b.attn.qkv for b in blocks],
-            "mlp": [b.mlp for b in blocks],
+            "attn_drop": attn_drop_mods,
+            "qkv": qkv_mods,
+            "mlp": mlp_mods,
         }
+
+
+    def att_feature_module(self) -> torch.nn.Module:
+        """
+        Module used to capture `im_fea` (forward output) and `im_grad` (backward output) for GF computation in ATT.
+        """
+        self._patch_if_needed()
+        m = self.model
+        if not hasattr(m, "blocks") or len(m.blocks) == 0:
+            raise TypeError("Model has no blocks to use as feature module for ATT")
+        return m.blocks[-1]
 
     # -------------------------
     # Internal patching

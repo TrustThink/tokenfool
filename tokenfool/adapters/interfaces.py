@@ -48,3 +48,6 @@ class HookableTransformerClassifier(TransformerClassifier, Protocol):
             "qkv"
             "mlp"
         """
+
+    def att_feature_module(self) -> nn.Module:
+        ...
