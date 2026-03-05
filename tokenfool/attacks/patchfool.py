@@ -1,3 +1,4 @@
+from typing import Tuple
 import math
 import numpy as np
 import torch
@@ -28,25 +29,25 @@ def PatchFool(
         x: torch.Tensor,
         y: torch.Tensor = None,
         *,
-        mu=(0.485, 0.456, 0.406),
-        std=(0.229, 0.224, 0.225),
-        patch_size=16,
-        num_patch=1,
-        sparse_pixel_num=0,
-        patch_select="Attn",
-        attack_mode="CE_loss",
-        atten_select=4,
-        atten_loss_weight=0.002,
-        iters=250,
-        learnable_mask_stop=200,
-        lr=0.22,
-        step_size=10,
-        gamma=0.95,
-        mild_l_inf=0.0,
-        mild_l_2=0.0,
-        device=None,
-        progress=False,
-):
+        mu: Tuple[float] = (0.485, 0.456, 0.406),
+        std: Tuple[float] =( 0.229, 0.224, 0.225),
+        patch_size: int = 16,
+        num_patch: int = 1,
+        sparse_pixel_num: int = 0,
+        patch_select: str = "Attn",
+        attack_mode: str = "CE_loss",
+        atten_select: int = 4,
+        atten_loss_weight: float = 0.002,
+        iters: int = 250,
+        learnable_mask_stop: int = 200,
+        lr: float = 0.22,
+        step_size: int = 10,
+        gamma: float = 0.95,
+        mild_l_inf: float = 0.0,
+        mild_l_2: float = 0.0,
+        device: torch.device = None,
+        progress: bool = False,
+) -> Tuple[torch.Tensor, torch.Tensor]:
     """
     Perform the Patch-Fool adversarial attack on a Transformer-based classifier, taken and adapted from the original implementation at:
     https://github.com/GATECH-EIC/Patch-Fool/blob/main/main.py
