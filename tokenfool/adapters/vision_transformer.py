@@ -21,6 +21,10 @@ class VisionTransformerClassifier:
     @property
     def cls_index(self) -> int:
         return 0
+    
+    @property
+    def num_prefix_tokens(self) -> int:
+        return 2 if getattr(self.model, "dist_token", None) is not None else 1
 
     # -------------------------
     # Forward API
@@ -32,8 +36,6 @@ class VisionTransformerClassifier:
     def logits_and_attn(self, x: torch.Tensor) -> Tuple[torch.Tensor, List[torch.Tensor]]:
         self._patch_if_needed()
         logits, attn_list = self.model(x)
-        if isinstance(logits, tuple):
-            logits = (logits[0] + logits[1]) / 2
         return logits, attn_list
 
     def tokens(self, x: torch.Tensor) -> torch.Tensor:
@@ -92,8 +94,8 @@ class VisionTransformerClassifier:
         m = self.model
         if not hasattr(m, "blocks") or len(m.blocks) == 0:
             raise TypeError("Model has no blocks to use as feature module for ATT")
-        return m.blocks[-1]
-
+        return m.blocks[-2] if len(m.blocks) >= 2 else m.blocks[-1]
+    
     # -------------------------
     # Internal patching
     # -------------------------
@@ -133,9 +135,9 @@ class VisionTransformerClassifier:
             return out, attn_probs
 
         # -------------------------
-        # Patch Block forward to collect attentions
+        # Patch Block.forward 
         # -------------------------
-        def block_forward_collect(self, x: torch.Tensor, attn_list: List[torch.Tensor]):
+        def block_forward_with_capture(self, x: torch.Tensor):
             y = self.norm1(x)
             attn_out, attn = self.attn(y)
 
@@ -149,15 +151,16 @@ class VisionTransformerClassifier:
             else:
                 x = x + self.drop_path(self.mlp(self.norm2(x)))
 
-            attn_list.append(attn.clone())
+            self._last_attn = attn.detach()
             return x
 
         # apply attention + block patches
         for blk in m.blocks:
             if not hasattr(blk, "attn"):
                 raise TypeError("Expected each block to have .attn")
+            blk._last_attn = None
             blk.attn.forward = attn_forward_with_capture.__get__(blk.attn, type(blk.attn))
-            blk.forward_collect = block_forward_collect.__get__(blk, type(blk))
+            blk.forward = block_forward_with_capture.__get__(blk, type(blk))
 
         # -------------------------
         # Patch forward_features
@@ -179,7 +182,8 @@ class VisionTransformerClassifier:
 
             attn_list: List[torch.Tensor] = []
             for blk in self.blocks:
-                x = blk.forward_collect(x, attn_list)
+                x = blk(x)
+                attn_list.append(blk._last_attn)
 
             x = self.norm(x)
             return x, attn_list
