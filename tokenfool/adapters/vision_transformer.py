@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import List, Tuple
+from typing import List, Tuple, Dict
 
 import torch
 import copy
@@ -21,6 +21,10 @@ class VisionTransformerClassifier:
     @property
     def cls_index(self) -> int:
         return 0
+    
+    @property
+    def num_prefix_tokens(self) -> int:
+        return 2 if getattr(self.model, "dist_token", None) is not None else 1
 
     # -------------------------
     # Forward API
@@ -32,8 +36,6 @@ class VisionTransformerClassifier:
     def logits_and_attn(self, x: torch.Tensor) -> Tuple[torch.Tensor, List[torch.Tensor]]:
         self._patch_if_needed()
         logits, attn_list = self.model(x)
-        if isinstance(logits, tuple):
-            logits = (logits[0] + logits[1]) / 2
         return logits, attn_list
 
     def tokens(self, x: torch.Tensor) -> torch.Tensor:
@@ -45,15 +47,55 @@ class VisionTransformerClassifier:
         tokens, attn_list = self.model.forward_features(x)
         return tokens, attn_list
     
-    def hook_modules(self):
+    def hook_modules(self) -> Dict[str, List[torch.nn.Module]]:
+        """
+        Hook targets for timm ViT/DeiT-style blocks.
+
+        Keys expected by ATT:
+        - "attn_drop": block.attn.attn_drop
+        - "qkv":       block.attn.qkv
+        - "mlp":       block.mlp
+        """
         self._patch_if_needed()
-        blocks = self.model.blocks
+        m = self.model
+
+        # Basic structural validation for timm ViT-like models
+        if not hasattr(m, "blocks"):
+            raise TypeError("ATT requires a ViT/DeiT-style model with .blocks")
+
+        attn_drop_mods: List[torch.nn.Module] = []
+        qkv_mods: List[torch.nn.Module] = []
+        mlp_mods: List[torch.nn.Module] = []
+
+        for i, blk in enumerate(m.blocks):
+            if not hasattr(blk, "attn") or not hasattr(blk.attn, "qkv"):
+                raise TypeError(f"Block {i} missing blk.attn.qkv (not a supported ViT/DeiT layout)")
+            if not hasattr(blk.attn, "attn_drop"):
+                raise TypeError(f"Block {i} missing blk.attn.attn_drop (not a supported ViT/DeiT layout)")
+            if not hasattr(blk, "mlp"):
+                raise TypeError(f"Block {i} missing blk.mlp (not a supported ViT/DeiT layout)")
+
+            attn_drop_mods.append(blk.attn.attn_drop)
+            qkv_mods.append(blk.attn.qkv)
+            mlp_mods.append(blk.mlp)
+
         return {
-            "attn_drop": [b.attn.attn_drop for b in blocks],
-            "qkv": [b.attn.qkv for b in blocks],
-            "mlp": [b.mlp for b in blocks],
+            "attn_drop": attn_drop_mods,
+            "qkv": qkv_mods,
+            "mlp": mlp_mods,
         }
 
+
+    def att_feature_module(self) -> torch.nn.Module:
+        """
+        Module used to capture `im_fea` (forward output) and `im_grad` (backward output) for GF computation in ATT.
+        """
+        self._patch_if_needed()
+        m = self.model
+        if not hasattr(m, "blocks") or len(m.blocks) == 0:
+            raise TypeError("Model has no blocks to use as feature module for ATT")
+        return m.blocks[-2] if len(m.blocks) >= 2 else m.blocks[-1]
+    
     # -------------------------
     # Internal patching
     # -------------------------
@@ -93,9 +135,9 @@ class VisionTransformerClassifier:
             return out, attn_probs
 
         # -------------------------
-        # Patch Block forward to collect attentions
+        # Patch Block.forward 
         # -------------------------
-        def block_forward_collect(self, x: torch.Tensor, attn_list: List[torch.Tensor]):
+        def block_forward_with_capture(self, x: torch.Tensor):
             y = self.norm1(x)
             attn_out, attn = self.attn(y)
 
@@ -109,15 +151,16 @@ class VisionTransformerClassifier:
             else:
                 x = x + self.drop_path(self.mlp(self.norm2(x)))
 
-            attn_list.append(attn.clone())
+            self._last_attn = attn.detach()
             return x
 
         # apply attention + block patches
         for blk in m.blocks:
             if not hasattr(blk, "attn"):
                 raise TypeError("Expected each block to have .attn")
+            blk._last_attn = None
             blk.attn.forward = attn_forward_with_capture.__get__(blk.attn, type(blk.attn))
-            blk.forward_collect = block_forward_collect.__get__(blk, type(blk))
+            blk.forward = block_forward_with_capture.__get__(blk, type(blk))
 
         # -------------------------
         # Patch forward_features
@@ -139,7 +182,8 @@ class VisionTransformerClassifier:
 
             attn_list: List[torch.Tensor] = []
             for blk in self.blocks:
-                x = blk.forward_collect(x, attn_list)
+                x = blk(x)
+                attn_list.append(blk._last_attn)
 
             x = self.norm(x)
             return x, attn_list

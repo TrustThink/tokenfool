@@ -7,6 +7,20 @@ class TransformerClassifier(Protocol):
     """
     Encoder-only transformer classifier with accessible attention maps.
     """
+    @property
+    def cls_index(self) -> int:
+        ...
+
+    @property
+    def num_prefix_tokens(self) -> int:
+        """
+        Number of non-patch prefix tokens at the front of the sequence.
+        Examples:
+            ViT/DeiT: 1
+            DeiT distilled: 2
+        """
+        ...
+
 
     def logits(self, x: torch.Tensor) -> torch.Tensor:
         """(B, C)"""
@@ -28,10 +42,6 @@ class TransformerClassifier(Protocol):
     ) -> Tuple[torch.Tensor, List[torch.Tensor]]:
         """(B, N, D), attn_list"""
 
-    @property
-    def cls_index(self) -> int:
-        ...
-
 
 
 class HookableTransformerClassifier(TransformerClassifier, Protocol):
@@ -48,3 +58,6 @@ class HookableTransformerClassifier(TransformerClassifier, Protocol):
             "qkv"
             "mlp"
         """
+
+    def att_feature_module(self) -> nn.Module:
+        ...
