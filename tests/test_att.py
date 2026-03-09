@@ -33,8 +33,6 @@ class TinyBackbone(nn.Module):
     def __init__(self, image_size=32, patch_size=8, dim=8, num_classes=5, num_prefix_tokens=1):
         super().__init__()
         assert image_size % patch_size == 0
-        grid = image_size // patch_size
-        num_patches = grid * grid
         patch_dim = 3 * patch_size * patch_size
 
         self.num_prefix_tokens = num_prefix_tokens
