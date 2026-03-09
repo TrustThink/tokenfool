@@ -22,6 +22,11 @@ dev = [
   "ipywidgets",
 ]
 
+test = [
+  "pytest"
+]
+
+
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["tokenfool*"]
