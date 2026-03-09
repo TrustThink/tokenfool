@@ -7,6 +7,20 @@ class TransformerClassifier(Protocol):
     """
     Encoder-only transformer classifier with accessible attention maps.
     """
+    @property
+    def cls_index(self) -> int:
+        ...
+
+    @property
+    def num_prefix_tokens(self) -> int:
+        """
+        Number of non-patch prefix tokens at the front of the sequence.
+        Examples:
+            ViT/DeiT: 1
+            DeiT distilled: 2
+        """
+        ...
+
 
     def logits(self, x: torch.Tensor) -> torch.Tensor:
         """(B, C)"""
@@ -27,10 +41,6 @@ class TransformerClassifier(Protocol):
         self, x: torch.Tensor
     ) -> Tuple[torch.Tensor, List[torch.Tensor]]:
         """(B, N, D), attn_list"""
-
-    @property
-    def cls_index(self) -> int:
-        ...
 
 
 
