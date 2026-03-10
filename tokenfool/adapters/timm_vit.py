@@ -8,7 +8,7 @@ import copy
 
 
 @dataclass
-class VisionTransformerClassifier:
+class TimmViTAdapter:
 
     model: torch.nn.Module
     _patched: bool = False
