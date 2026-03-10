@@ -67,6 +67,9 @@ class DummyHookableViT:
     def num_prefix_tokens(self) -> int:
         return self.model.num_prefix_tokens
 
+    def zero_grad(self, set_to_none: bool = True) -> None:
+        self.model.zero_grad(set_to_none=set_to_none)
+
     def logits(self, x: torch.Tensor) -> torch.Tensor:
         return self.model(x)
 

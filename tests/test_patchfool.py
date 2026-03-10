@@ -18,6 +18,7 @@ class DummyViT(nn.Module):
         self.layers = layers
         self.proj = nn.Linear(3, num_classes)
 
+
     def logits(self, x: torch.Tensor) -> torch.Tensor:
         feat = x.mean(dim=(2, 3))
         return self.proj(feat)

@@ -220,7 +220,7 @@ def PatchFool(
     # -------------------------
     # adv attack prep
     # -------------------------
-    max_patch_index_matrix = torch.tensor(max_patch_index[:, 0], device=device, dtype=torch.long)
+    max_patch_index_matrix = max_patch_index[:, 0].to(device=device, dtype=torch.long)    
     max_patch_index_matrix = max_patch_index_matrix.repeat(N_tokens, 1)
     max_patch_index_matrix = max_patch_index_matrix.permute(1, 0).flatten().long()
 
