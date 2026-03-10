@@ -13,14 +13,6 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-lint = [
-  "ruff",
-]
-
-typecheck = [
-  "mypy",
-]
-
 test = [
   "pytest",
 ]
@@ -35,7 +27,6 @@ dev = [
   "tqdm",
   "ipywidgets",
 ]
-
 
 [tool.mypy]
 python_version = "3.11"
