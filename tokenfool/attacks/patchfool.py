@@ -1,10 +1,8 @@
-from typing import Tuple
+from typing import Tuple, Optional
 import math
 import numpy as np
 import torch
 import torch.nn.functional as F
-
-from Typing import Optional
 
 try: # optional dependency for progress bar
     from tqdm.auto import tqdm
