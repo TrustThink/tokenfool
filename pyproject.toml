@@ -13,9 +13,22 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = [
-  "pytest",
+lint = [
   "ruff",
+]
+
+typecheck = [
+  "mypy",
+]
+
+test = [
+  "pytest",
+]
+
+dev = [
+  "ruff",
+  "mypy",
+  "pytest",
   "timm",
   "torchvision",
   "matplotlib",
@@ -23,11 +36,10 @@ dev = [
   "ipywidgets",
 ]
 
-test = [
-  "pytest",
-  "ruff",
-]
 
+[tool.mypy]
+python_version = "3.11"
+ignore_missing_imports = true
 
 [tool.setuptools.packages.find]
 where = ["."]
