@@ -1,14 +1,28 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import List, Tuple, Dict
+from typing import List, Tuple, Dict, Any
 
 import torch
 import copy
 
+from tokenfool.adapters.interfaces import HookableTransformerClassifier
+
 
 @dataclass
-class TimmViTAdapter:
+class TimmViTAdapter(HookableTransformerClassifier):
+    """
+    Adapter for timm ViT/DeiT-style image classifiers.
+    Implements the HookableTransformerClassifier interface in interfaces.py.
+
+    Notes
+    -----
+    - Scoped to timm-style Vision Transformer classifier implementations.
+    - Supports both standard and distilled DeiT variants.
+    - Internally patches selected forward methods on a deep-copied model
+      so attention maps and intermediate features can be collected
+      without modifying the caller's original model instance.
+    """
 
     model: torch.nn.Module
     _patched: bool = False
@@ -25,6 +39,9 @@ class TimmViTAdapter:
     @property
     def num_prefix_tokens(self) -> int:
         return 2 if getattr(self.model, "dist_token", None) is not None else 1
+    
+    def zero_grad(self, set_to_none: bool = True) -> None:
+        self.model.zero_grad(set_to_none=set_to_none)
 
     # -------------------------
     # Forward API
@@ -44,7 +61,8 @@ class TimmViTAdapter:
 
     def tokens_and_attn(self, x: torch.Tensor) -> Tuple[torch.Tensor, List[torch.Tensor]]:
         self._patch_if_needed()
-        tokens, attn_list = self.model.forward_features(x)
+        m: Any = self.model
+        tokens, attn_list = m.forward_features(x)
         return tokens, attn_list
     
     def hook_modules(self) -> Dict[str, List[torch.nn.Module]]:
@@ -57,7 +75,7 @@ class TimmViTAdapter:
         - "mlp":       block.mlp
         """
         self._patch_if_needed()
-        m = self.model
+        m: Any = self.model
 
         # Basic structural validation for timm ViT-like models
         if not hasattr(m, "blocks"):
@@ -91,7 +109,7 @@ class TimmViTAdapter:
         Module used to capture `im_fea` (forward output) and `im_grad` (backward output) for GF computation in ATT.
         """
         self._patch_if_needed()
-        m = self.model
+        m: Any = self.model
         if not hasattr(m, "blocks") or len(m.blocks) == 0:
             raise TypeError("Model has no blocks to use as feature module for ATT")
         return m.blocks[-2] if len(m.blocks) >= 2 else m.blocks[-1]
@@ -103,7 +121,7 @@ class TimmViTAdapter:
         if self._patched:
             return
 
-        m = self.model
+        m: Any = self.model
 
         required = ["blocks", "patch_embed", "cls_token", "pos_embed", "pos_drop", "norm", "head"]
         missing = [name for name in required if not hasattr(m, name)]

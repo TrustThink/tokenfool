@@ -4,6 +4,8 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
+from Typing import Optional
+
 try: # optional dependency for progress bar
     from tqdm.auto import tqdm
 except ImportError:
@@ -27,10 +29,10 @@ def _infer_special_tokens_from_attn(N: int) -> int:
 def PatchFool(
         model: TransformerClassifier,  
         x: torch.Tensor,
-        y: torch.Tensor = None,
+        y: Optional[torch.Tensor] = None,
         *,
-        mu: Tuple[float] = (0.485, 0.456, 0.406),
-        std: Tuple[float] =( 0.229, 0.224, 0.225),
+        mu: Tuple[float, float, float] = (0.485, 0.456, 0.406),
+        std: Tuple[float, float, float] = (0.229, 0.224, 0.225),
         patch_size: int = 16,
         num_patch: int = 1,
         sparse_pixel_num: int = 0,
@@ -45,7 +47,7 @@ def PatchFool(
         gamma: float = 0.95,
         mild_l_inf: float = 0.0,
         mild_l_2: float = 0.0,
-        device: torch.device = None,
+        device: Optional[torch.device] = None,
         progress: bool = False,
 ) -> Tuple[torch.Tensor, torch.Tensor]:
     """
@@ -165,7 +167,7 @@ def PatchFool(
     # -------------------------
     # Initial forward for patch selection
     # -------------------------
-    delta = torch.zeros_like(x, device=device, requires_grad=True)
+    delta: torch.Tensor = torch.zeros_like(x, device=device, requires_grad=True)
 
     logits0, atten0 = model.logits_and_attn(x + delta)
     loss0 = criterion(logits0, y) # initial loss
@@ -177,10 +179,9 @@ def PatchFool(
     # Patch selection
     # -------------------------
     if patch_select == 'Rand':
-        max_patch_index = np.random.randint(
+        max_patch_index = torch.from_numpy(np.random.randint(
             0, patch_num_per_line * patch_num_per_line, (x.size(0), num_patch)
-        )
-        max_patch_index = torch.from_numpy(max_patch_index).to(device)
+        )).to(device)
     elif patch_select == 'Saliency':
         filt = torch.ones((1, 3, patch_size, patch_size), device=device, dtype=x.dtype)
         grad = torch.autograd.grad(loss0, delta, retain_graph=False)[0]
@@ -212,7 +213,7 @@ def PatchFool(
             row = int(row.item()) if torch.is_tensor(row) else int(row)
             column = int(column.item()) if torch.is_tensor(column) else int(column)
 
-            if sparse_pixel_num != 0:
+            if sparse_pixel_num != 0 and learnable_mask is not None:
                 learnable_mask.data[j, :, row:row + patch_size, column:column + patch_size] = torch.rand(
                     (patch_size, patch_size), device=device, dtype=x.dtype
                 )
@@ -221,7 +222,7 @@ def PatchFool(
     # -------------------------
     # adv attack prep
     # -------------------------
-    max_patch_index_matrix = max_patch_index[:, 0]
+    max_patch_index_matrix = torch.tensor(max_patch_index[:, 0], device=device, dtype=torch.long)
     max_patch_index_matrix = max_patch_index_matrix.repeat(N_tokens, 1)
     max_patch_index_matrix = max_patch_index_matrix.permute(1, 0).flatten().long()
 
@@ -237,7 +238,8 @@ def PatchFool(
     if sparse_pixel_num == 0:
         x = torch.mul(x, 1 - mask)
     else:
-        learnable_mask.requires_grad = True
+        if learnable_mask is not None:
+            learnable_mask.requires_grad = True
 
     delta = delta.to(device)
     delta.requires_grad = True
@@ -245,6 +247,7 @@ def PatchFool(
     opt = torch.optim.Adam([delta], lr=lr)
     mask_opt = None
     if sparse_pixel_num != 0:
+        assert learnable_mask is not None
         mask_opt = torch.optim.Adam([learnable_mask], lr=1e-2)
     scheduler = torch.optim.lr_scheduler.StepLR(opt, step_size=step_size, gamma=gamma)
 
@@ -262,7 +265,7 @@ def PatchFool(
         if sparse_pixel_num != 0 and mask_opt is not None:
             mask_opt.zero_grad(set_to_none=True)
 
-        if sparse_pixel_num != 0:
+        if sparse_pixel_num != 0 and learnable_mask is not None:
             if iter < learnable_mask_stop:
                 sparse_mask = torch.zeros_like(mask)
                 learnable_mask_temp = learnable_mask.view(learnable_mask.size(0), -1)
@@ -287,6 +290,7 @@ def PatchFool(
             ce_loss_grad_temp = grad.view(x.size(0), -1).detach().clone()
 
             if sparse_pixel_num != 0 and iter < learnable_mask_stop:
+                assert learnable_mask is not None
                 mask_grad = torch.autograd.grad(loss, learnable_mask, retain_graph=True)[0]
 
             range_list = range(len(atten) // 2)
@@ -304,6 +308,7 @@ def PatchFool(
                 cos_sim = F.cosine_similarity(atten_grad_temp, ce_loss_grad_temp, dim=1)
 
                 if sparse_pixel_num != 0 and iter < learnable_mask_stop:
+                    assert learnable_mask is not None
                     mask_atten_grad = torch.autograd.grad(atten_loss, learnable_mask, retain_graph=True)[0]
 
                 atten_grad = PCGrad(atten_grad_temp, ce_loss_grad_temp, cos_sim, grad.shape)
@@ -322,6 +327,7 @@ def PatchFool(
         else:
             # no attention loss
             if sparse_pixel_num != 0 and iter < learnable_mask_stop:
+                assert learnable_mask is not None
                 grad = torch.autograd.grad(loss, delta, retain_graph=True)[0]
                 mask_grad = torch.autograd.grad(loss, learnable_mask)[0]
             else:
@@ -332,7 +338,7 @@ def PatchFool(
         opt.step()
         scheduler.step()
 
-        if sparse_pixel_num != 0 and iter < learnable_mask_stop and mask_opt is not None:
+        if sparse_pixel_num != 0 and learnable_mask is not None and iter < learnable_mask_stop and mask_opt is not None:
             learnable_mask.grad = -mask_grad
             mask_opt.step()
 
@@ -368,7 +374,7 @@ def PatchFool(
             x_adv = x + torch.mul(delta, mask)
         else:
             # TODO
-            x_adv = None
+            raise NotImplementedError("Sparse pixel attack not fully implemented yet.")
 
 
     return x_adv, mask

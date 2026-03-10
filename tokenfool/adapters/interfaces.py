@@ -21,6 +21,9 @@ class TransformerClassifier(Protocol):
         """
         ...
 
+    def zero_grad(self, set_to_none: bool = True) -> None:
+        ...
+
 
     def logits(self, x: torch.Tensor) -> torch.Tensor:
         """(B, C)"""

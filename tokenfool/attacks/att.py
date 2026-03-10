@@ -24,8 +24,8 @@ def ATT(
     # ViT defaults from the reference repo 
     weaken_factor: Tuple[float, float, float] = (0.45, 0.7, 0.65),
     keep_ratio: float = 10 / 12,  
-    mu: Tuple[float] =(0.485, 0.456, 0.406),
-    std=(0.229, 0.224, 0.225),
+    mu: Tuple[float, float, float] =(0.485, 0.456, 0.406),
+    std: Tuple[float, float, float]=(0.229, 0.224, 0.225),
     targeted: bool = False,
     patch_out: bool = True,
     patch_size: int = 16,
@@ -265,7 +265,7 @@ def ATT(
                 tmp += 1
         return idx
     
-    def _norm_patches(gf: torch.Tensor, index: torch.tensor, patch: int, scale: float, offset: float) -> torch.Tensor:
+    def _norm_patches(gf: torch.Tensor, index: torch.Tensor, patch: int, scale: float, offset: float) -> torch.Tensor:
         gf = gf.clone()
         flat = gf.view(gf.shape[0], -1)
         patch_area = patch * patch
@@ -360,7 +360,7 @@ def ATT(
         patch_index = _patch_index(patch_size, image_size)
 
         if patch_out:
-            model.model.zero_grad(set_to_none=True)
+            model.zero_grad(set_to_none=True)
             init_x = x.detach().clone().requires_grad_(True)
             init_logits = model.logits(init_x)
             init_logits.backward(torch.ones_like(init_logits))
@@ -370,7 +370,7 @@ def ATT(
             
             gf_feat_ref = state["im_fea"].detach()
             gf_grad_ref = state["im_grad"].detach()
-            model.model.zero_grad(set_to_none=True)
+            model.zero_grad(set_to_none=True)
         else:
             gf_feat_ref = None
             gf_grad_ref = None
@@ -388,7 +388,7 @@ def ATT(
 
             if perts.grad is not None:
                 perts.grad.zero_()
-            model.model.zero_grad(set_to_none=True)
+            model.zero_grad(set_to_none=True)
 
             if patch_out:
                 gf_mask = _build_patch_mask_from_refs(i, gf_feat_ref, gf_grad_ref, patch_index)
