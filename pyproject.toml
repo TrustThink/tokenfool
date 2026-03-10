@@ -15,6 +15,7 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
   "pytest",
+  "ruff",
   "timm",
   "torchvision",
   "matplotlib",
@@ -23,7 +24,8 @@ dev = [
 ]
 
 test = [
-  "pytest"
+  "pytest",
+  "ruff",
 ]
 
 
