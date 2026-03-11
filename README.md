@@ -67,4 +67,5 @@ ruff check
 ```
 
 7. Open a Pull Request
+
 Repository checks also run through GitHub Actions.
