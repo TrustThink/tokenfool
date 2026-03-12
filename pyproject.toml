@@ -4,9 +4,14 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "tokenfool"
-version = "0.1.0"
+version = "0.0.1"
+authors = [
+  { name="Allison Lane", email="lane_allison@trustthink.net"}
+]
 readme = "README.md"
 requires-python = ">=3.10"
+license="MIT"
+license-files = ["LICENSE"]
 dependencies = [
   "torch",
   "numpy",
