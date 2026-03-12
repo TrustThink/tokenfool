@@ -44,3 +44,7 @@ include = ["tokenfool*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["S101"]
+"examples/**/*.ipynb" = ["S310"]

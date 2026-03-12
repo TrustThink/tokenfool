@@ -245,7 +245,8 @@ def PatchFool(
     opt = torch.optim.Adam([delta], lr=lr)
     mask_opt = None
     if sparse_pixel_num != 0:
-        assert learnable_mask is not None
+        if learnable_mask is None:
+            raise ValueError("sparse_pixel_num > 0 but learnable_mask is None")
         mask_opt = torch.optim.Adam([learnable_mask], lr=1e-2)
     scheduler = torch.optim.lr_scheduler.StepLR(opt, step_size=step_size, gamma=gamma)
 
@@ -288,7 +289,8 @@ def PatchFool(
             ce_loss_grad_temp = grad.view(x.size(0), -1).detach().clone()
 
             if sparse_pixel_num != 0 and iter < learnable_mask_stop:
-                assert learnable_mask is not None
+                if learnable_mask is None:
+                    raise ValueError("sparse_pixel_num > 0 but learnable_mask is None")
                 mask_grad = torch.autograd.grad(loss, learnable_mask, retain_graph=True)[0]
 
             range_list = range(len(atten) // 2)
@@ -306,7 +308,8 @@ def PatchFool(
                 cos_sim = F.cosine_similarity(atten_grad_temp, ce_loss_grad_temp, dim=1)
 
                 if sparse_pixel_num != 0 and iter < learnable_mask_stop:
-                    assert learnable_mask is not None
+                    if learnable_mask is None:
+                        raise ValueError("sparse_pixel_num > 0 but learnable_mask is None")
                     mask_atten_grad = torch.autograd.grad(atten_loss, learnable_mask, retain_graph=True)[0]
 
                 atten_grad = PCGrad(atten_grad_temp, ce_loss_grad_temp, cos_sim, grad.shape)
@@ -325,7 +328,8 @@ def PatchFool(
         else:
             # no attention loss
             if sparse_pixel_num != 0 and iter < learnable_mask_stop:
-                assert learnable_mask is not None
+                if learnable_mask is None:
+                    raise ValueError("sparse_pixel_num > 0 but learnable_mask is None")
                 grad = torch.autograd.grad(loss, delta, retain_graph=True)[0]
                 mask_grad = torch.autograd.grad(loss, learnable_mask)[0]
             else:
