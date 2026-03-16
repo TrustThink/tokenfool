@@ -27,6 +27,7 @@ class TransformerClassifier(Protocol):
 
     def logits(self, x: torch.Tensor) -> torch.Tensor:
         """(B, C)"""
+        ...
 
     def logits_and_attn(
         self, x: torch.Tensor
@@ -36,14 +37,17 @@ class TransformerClassifier(Protocol):
             logits: (B, C)
             attn_list: List of (B, heads, N, N)
         """
+        ...
 
     def tokens(self, x: torch.Tensor) -> torch.Tensor:
         """(B, N, D)"""
+        ...
 
     def tokens_and_attn(
         self, x: torch.Tensor
     ) -> Tuple[torch.Tensor, List[torch.Tensor]]:
         """(B, N, D), attn_list"""
+        ...
 
 
 
@@ -54,13 +58,17 @@ class HookableTransformerClassifier(TransformerClassifier, Protocol):
 
     def hook_modules(self) -> Dict[str, List[nn.Module]]:
         """
-        Return modules that support gradient hooks.
+        Return per-block modules that support gradient hooks.
 
-        Required keys for ATT:
-            "attn_drop"
-            "qkv"
-            "mlp"
+        Required keys:
+            "attn_probs_drop"
+                Dropout or equivalent module applied to attention probabilities
+            "attn_proj"
+                Module representing the attention input projection path
+            "ffn"
+                Feed-forward / MLP transform module in each block
         """
+        ...
 
     def att_feature_module(self) -> nn.Module:
         ...

@@ -116,13 +116,13 @@ def ATT(
 
     # hook targets
     mods = model.hook_modules()
-    attn_drop_mods = mods["attn_drop"]
-    qkv_mods = mods["qkv"]
-    mlp_mods = mods["mlp"]
+    attn_probs_drop_mods = mods["attn_probs_drop"]
+    attn_proj_mods = mods["attn_proj"]
+    ffn_mods = mods["ffn"]
 
-    num_blocks = len(attn_drop_mods)
-    if not (len(qkv_mods) == len(mlp_mods) == num_blocks):
-        raise TypeError("hook_modules() must return equally-sized per-block lists for attn_drop/qkv/mlp.")
+    num_blocks = len(attn_probs_drop_mods)
+    if not (len(attn_proj_mods) == len(ffn_mods) == num_blocks):
+        raise TypeError("hook_modules() must return equally-sized per-block lists for attn_probs_drop/attn_proj/ffn.")
 
     k_keep = int(round(keep_ratio * num_blocks))
     k_keep = max(0, min(num_blocks, k_keep))
@@ -133,8 +133,8 @@ def ATT(
     # shared hook state
     state: Dict[str, Any] = {
         "var_A": torch.tensor(0.0, device=device, dtype=dtype),
-        "var_qkv": torch.tensor(0.0, device=device, dtype=dtype),
-        "var_mlp": torch.tensor(0.0, device=device, dtype=dtype),
+        "var_attn_proj": torch.tensor(0.0, device=device, dtype=dtype),
+        "var_ffn": torch.tensor(0.0, device=device, dtype=dtype),
         "back_attn": num_blocks - 1,
         "im_fea": None,
         "im_grad": None,
@@ -210,26 +210,26 @@ def ATT(
         state["back_attn"] = li - 1
         return _ret_like(grad_in, out_grad)
 
-    def qkv_hook(module, grad_in, grad_out):
+    def attn_proj_hook(module, grad_in, grad_out):
         if len(grad_in) == 0 or grad_in[0] is None:
             return None
 
         out_grad = grad_in[0] * weaken_factor[1]
-        gpf = _safe_gpf(out_grad, state["var_qkv"])
+        gpf = _safe_gpf(out_grad, state["var_attn_proj"])
         out_grad = _token_vit_extrema_scale(out_grad, gpf)
 
-        state["var_qkv"] = torch.var(out_grad.detach())
+        state["var_attn_proj"] = torch.var(out_grad.detach())
         return _ret_like(grad_in, out_grad)
 
-    def mlp_hook(module, grad_in, grad_out):
+    def ffn_hook(module, grad_in, grad_out):
         if len(grad_in) == 0 or grad_in[0] is None:
             return None
 
         out_grad = grad_in[0] * weaken_factor[2]
-        gpf = _safe_gpf(out_grad, state["var_mlp"])
+        gpf = _safe_gpf(out_grad, state["var_ffn"])
         out_grad = _token_vit_extrema_scale(out_grad, gpf)
 
-        state["var_mlp"] = torch.var(out_grad.detach())
+        state["var_ffn"] = torch.var(out_grad.detach())
         return _ret_like(grad_in, out_grad)
 
     # feature hooks 
@@ -339,12 +339,12 @@ def ATT(
     # Register hooks
     handles: List[torch.utils.hooks.RemovableHandle] = []
     try:
-        for m in attn_drop_mods:
+        for m in attn_probs_drop_mods:
             handles.append(m.register_full_backward_hook(attn_hook))
-        for m in qkv_mods:
-            handles.append(m.register_full_backward_hook(qkv_hook))
-        for m in mlp_mods:
-            handles.append(m.register_full_backward_hook(mlp_hook))
+        for m in attn_proj_mods:
+            handles.append(m.register_full_backward_hook(attn_proj_hook))
+        for m in ffn_mods:
+            handles.append(m.register_full_backward_hook(ffn_hook))
 
         feat_mod = model.att_feature_module()
         handles.append(feat_mod.register_forward_hook(fea_hook))
@@ -380,8 +380,8 @@ def ATT(
             # reset per-step state
             state["back_attn"] = num_blocks - 1
             state["var_A"] = torch.tensor(0.0, device=device, dtype=dtype)
-            state["var_qkv"] = torch.tensor(0.0, device=device, dtype=dtype)
-            state["var_mlp"] = torch.tensor(0.0, device=device, dtype=dtype)
+            state["var_attn_proj"] = torch.tensor(0.0, device=device, dtype=dtype)
+            state["var_ffn"] = torch.tensor(0.0, device=device, dtype=dtype)
 
             if perts.grad is not None:
                 perts.grad.zero_()

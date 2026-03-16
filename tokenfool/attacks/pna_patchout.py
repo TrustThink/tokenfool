@@ -157,12 +157,12 @@ def PNAPatchOut(
     direction = -1.0 if targeted else 1.0
 
     mods: Dict[str, List[torch.nn.Module]] = model.hook_modules()
-    if "attn_drop" not in mods:
-        raise TypeError('hook_modules() must provide key "attn_drop" for PNAPatchOut.')
+    if "attn_probs_drop" not in mods:
+        raise TypeError('hook_modules() must provide key "attn_probs_drop" for PNAPatchOut.')
 
     handles: List[torch.utils.hooks.RemovableHandle] = []
     try:
-        for m in mods["attn_drop"]:
+        for m in mods["attn_probs_drop"]:
             handles.append(m.register_full_backward_hook(_zero_attention_grad_hook))
 
         delta = torch.zeros_like(x, device=device)
