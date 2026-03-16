@@ -37,7 +37,7 @@ def ATT(
     """
     Perform the Adaptive Token Tuning (ATT) adversarial attack on a
     Transformer-based classifier.
-    Taken and adapted from the official implementation at: 
+    Taken and adapted from the official implementation at: https://github.com/MisterRpeng/ATT/blob/main/methods.py
 
     This implementation assumes a ViT/DeiT-style transformer architecture
     and requires a model adapter implementing HookableTransformerClassifier.
@@ -92,9 +92,6 @@ def ATT(
     -------
     x_adv : torch.Tensor
         Adversarial examples of shape (B, C, H, W).
-
-    mask : None
-        ATT does not produce a spatial perturbation mask.
     """
     required = ("hook_modules", "att_feature_module")
     missing = [m for m in required if not hasattr(model, m)]
