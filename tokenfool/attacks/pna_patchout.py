@@ -85,6 +85,8 @@ def PNAPatchOut(
     """
     Perform the PNA + PatchOut attack from:
     "Boosting Adversarial Transferability on Vision Transformer with PatchOut and Pay No Attention".
+    Taken and adapted from the official implementation at
+    https://github.com/zhipeng-wei/PNA-PatchOut/blob/master/our_method.py
 
     This attack:
       1. applies PNA by stopping gradients through attention-drop modules; and
