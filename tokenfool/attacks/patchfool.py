@@ -1,6 +1,5 @@
 from typing import Tuple, Optional
 import math
-import numpy as np
 import torch
 import torch.nn.functional as F
 
@@ -177,9 +176,12 @@ def PatchFool(
     # Patch selection
     # -------------------------
     if patch_select == 'Rand':
-        max_patch_index = torch.from_numpy(np.random.randint(
-            0, patch_num_per_line * patch_num_per_line, (x.size(0), num_patch)
-        )).to(device)
+        max_patch_index = torch.randint(
+            0,
+            patch_num_per_line * patch_num_per_line,
+            (x.size(0), num_patch),
+            device=device,
+        )
     elif patch_select == 'Saliency':
         filt = torch.ones((1, 3, patch_size, patch_size), device=device, dtype=x.dtype)
         grad = torch.autograd.grad(loss0, delta, retain_graph=False)[0]
