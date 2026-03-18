@@ -66,14 +66,6 @@ class TimmViTAdapter(HookableTransformerClassifier):
         return tokens, attn_list
     
     def hook_modules(self) -> Dict[str, List[torch.nn.Module]]:
-        """
-        Hook targets for timm ViT/DeiT-style blocks.
-
-        Keys expected by ATT:
-        - "attn_drop": block.attn.attn_drop
-        - "qkv":       block.attn.qkv
-        - "mlp":       block.mlp
-        """
         self._patch_if_needed()
         m: Any = self.model
 
@@ -81,9 +73,9 @@ class TimmViTAdapter(HookableTransformerClassifier):
         if not hasattr(m, "blocks"):
             raise TypeError("ATT requires a ViT/DeiT-style model with .blocks")
 
-        attn_drop_mods: List[torch.nn.Module] = []
-        qkv_mods: List[torch.nn.Module] = []
-        mlp_mods: List[torch.nn.Module] = []
+        attn_probs_drop_mods: List[torch.nn.Module] = []
+        attn_proj_mods: List[torch.nn.Module] = []
+        ffn_mods: List[torch.nn.Module] = []
 
         for i, blk in enumerate(m.blocks):
             if not hasattr(blk, "attn") or not hasattr(blk.attn, "qkv"):
@@ -93,14 +85,14 @@ class TimmViTAdapter(HookableTransformerClassifier):
             if not hasattr(blk, "mlp"):
                 raise TypeError(f"Block {i} missing blk.mlp (not a supported ViT/DeiT layout)")
 
-            attn_drop_mods.append(blk.attn.attn_drop)
-            qkv_mods.append(blk.attn.qkv)
-            mlp_mods.append(blk.mlp)
+            attn_probs_drop_mods.append(blk.attn.attn_drop)
+            attn_proj_mods.append(blk.attn.qkv)
+            ffn_mods.append(blk.mlp)
 
         return {
-            "attn_drop": attn_drop_mods,
-            "qkv": qkv_mods,
-            "mlp": mlp_mods,
+            "attn_probs_drop": attn_probs_drop_mods,
+            "attn_proj": attn_proj_mods,
+            "ffn": ffn_mods,
         }
 
 

@@ -75,9 +75,9 @@ class DummyHookableViT:
 
     def hook_modules(self):
         return {
-            "attn_drop": [blk.attn.attn_drop for blk in self.model.blocks],
-            "qkv": [blk.attn.qkv for blk in self.model.blocks],
-            "mlp": [blk.mlp for blk in self.model.blocks],
+            "attn_probs_drop": [blk.attn.attn_drop for blk in self.model.blocks],
+            "attn_proj": [blk.attn.qkv for blk in self.model.blocks],
+            "ffn": [blk.mlp for blk in self.model.blocks],
         }
 
     def att_feature_module(self):

@@ -142,7 +142,7 @@ def test_attention_is_square_over_tokens(adapter, x):
 def test_hook_modules_keys(adapter, x):
     _ = adapter.tokens(x)
     hooks = adapter.hook_modules()
-    assert set(hooks.keys()) == {"attn_drop", "qkv", "mlp"}
+    assert set(hooks.keys()) == {"attn_probs_drop", "attn_proj", "ffn"}
 
 
 def test_hook_modules_lengths_match_block_count(adapter, x):
@@ -150,9 +150,9 @@ def test_hook_modules_lengths_match_block_count(adapter, x):
     hooks = adapter.hook_modules()
     n_blocks = len(adapter.model.blocks)
 
-    assert len(hooks["attn_drop"]) == n_blocks
-    assert len(hooks["qkv"]) == n_blocks
-    assert len(hooks["mlp"]) == n_blocks
+    assert len(hooks["attn_probs_drop"]) == n_blocks
+    assert len(hooks["attn_proj"]) == n_blocks
+    assert len(hooks["ffn"]) == n_blocks
 
 
 def test_hook_modules_are_modules(adapter, x):
