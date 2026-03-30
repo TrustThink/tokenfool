@@ -20,6 +20,9 @@ dependencies = [
 [project.optional-dependencies]
 test = [
   "pytest",
+]
+
+integration = [
   "timm",
 ]
 
