@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "tokenfool"
-version = "0.0.1"
+version = "0.1.1"
 authors = [
   { name="Allison Lane", email="lane_allison@trustthink.net"}
 ]
@@ -19,6 +19,9 @@ dependencies = [
 [project.optional-dependencies]
 test = [
   "pytest",
+]
+
+integration = [
   "timm",
 ]
 
@@ -44,6 +47,9 @@ include = ["tokenfool*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = [
+    "integration: tests that use real timm models or other heavier dependencies",
+]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**/*.py" = ["S101"]
