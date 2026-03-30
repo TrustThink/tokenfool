@@ -161,7 +161,7 @@ class TimmViTAdapter(HookableTransformerClassifier):
             else:
                 x = x + self.drop_path(self.mlp(self.norm2(x)))
 
-            self._last_attn = attn.detach()
+            self._last_attn = attn
             return x
 
         # apply attention + block patches
