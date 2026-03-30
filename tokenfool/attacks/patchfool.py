@@ -146,6 +146,14 @@ def PatchFool(
         Binary mask of shape (B, 1, H, W) indicating perturbed patch regions.
 
     """
+    # parameter validation
+    ph, pw = model.native_patch_size
+    if attack_mode == "Attention" and (patch_size != ph or patch_size != pw):
+        raise ValueError(
+            f"Attention mode requires attack patch size to match native model patch size "
+            f"{(ph, pw)}; got {(patch_size, patch_size)}."
+        )
+    
     if device is None:
         device = x.device
     x = x.to(device)

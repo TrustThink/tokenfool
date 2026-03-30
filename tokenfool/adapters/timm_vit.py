@@ -37,6 +37,13 @@ class TimmViTAdapter(HookableTransformerClassifier):
         return 0
     
     @property
+    def native_patch_size(self) -> tuple[int, int]:
+        p = self.model.patch_embed.patch_size
+        if isinstance(p, int):
+            return (p, p)
+        return tuple(p)
+
+    @property
     def num_prefix_tokens(self) -> int:
         return 2 if getattr(self.model, "dist_token", None) is not None else 1
     
@@ -161,7 +168,7 @@ class TimmViTAdapter(HookableTransformerClassifier):
             else:
                 x = x + self.drop_path(self.mlp(self.norm2(x)))
 
-            self._last_attn = attn.detach()
+            self._last_attn = attn
             return x
 
         # apply attention + block patches

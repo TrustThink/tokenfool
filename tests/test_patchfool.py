@@ -18,6 +18,10 @@ class DummyViT(nn.Module):
         self.layers = layers
         self.proj = nn.Linear(3, num_classes)
 
+    @property
+    def native_patch_size(self) -> tuple[int, int]:
+        return (16, 16)
+
 
     def logits(self, x: torch.Tensor) -> torch.Tensor:
         feat = x.mean(dim=(2, 3))
