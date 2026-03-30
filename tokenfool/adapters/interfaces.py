@@ -12,6 +12,11 @@ class TransformerClassifier(Protocol):
         ...
 
     @property
+    def native_patch_size(self) -> tuple[int, int]:
+        """Native image patch size used by the model's patch embedding layer."""
+        ...
+
+    @property
     def num_prefix_tokens(self) -> int:
         """
         Number of non-patch prefix tokens at the front of the sequence.
