@@ -44,6 +44,9 @@ include = ["tokenfool*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = [
+    "integration: tests that use real timm models or other heavier dependencies",
+]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**/*.py" = ["S101"]
