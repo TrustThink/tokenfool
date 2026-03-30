@@ -37,6 +37,13 @@ class TimmViTAdapter(HookableTransformerClassifier):
         return 0
     
     @property
+    def native_patch_size(self) -> tuple[int, int]:
+        p = self.model.patch_embed.patch_size
+        if isinstance(p, int):
+            return (p, p)
+        return tuple(p)
+
+    @property
     def num_prefix_tokens(self) -> int:
         return 2 if getattr(self.model, "dist_token", None) is not None else 1
     
