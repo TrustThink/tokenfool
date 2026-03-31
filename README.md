@@ -20,9 +20,10 @@ TokenFool currently includes:
 Current attack coverage includes:
 - **Patch-Fool** ([paper](https://arxiv.org/abs/2203.08392))
 - **Adaptive Token Tuning (ATT)** ([paper](https://proceedings.neurips.cc/paper_files/paper/2024/hash/24f8dd1b8f154f1ee0d7a59e368eccf3-Abstract-Conference.html))
+- **Pay No Attention (PNA) + PatchOut** ([paper](https://arxiv.org/pdf/2109.04176))
 
 Current model support is focused on:
-- **timm-style ViT/DeiT classifier implementations**
+- **timm and huggingface ViT/DeiT classifier implementations**
 - **user-defined models that implement the required interface contract via a custom adapter**
 
 ## Next Steps
