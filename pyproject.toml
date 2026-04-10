@@ -14,7 +14,6 @@ license="MIT"
 license-files = ["LICENSE"]
 dependencies = [
   "torch",
-  "numpy",
 ]
 
 [project.optional-dependencies]
@@ -31,6 +30,7 @@ dev = [
   "mypy",
   "pytest",
   "timm",
+  "transformers",
   "torchvision",
   "matplotlib",
   "tqdm",

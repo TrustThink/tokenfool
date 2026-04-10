@@ -1,8 +1,8 @@
-.venv
+.tokenfoolEnv/
+tokenfoolEnv/
+.venv/
+venv/
+**/__pycache__/
 *.egg-info/
-build/
-dist/
-__pycache__
-.pytest_cache
-.ruff_cache
-.mypy_cache
+activate/
+path/
