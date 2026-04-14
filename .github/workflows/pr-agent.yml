@@ -27,7 +27,7 @@ jobs:
       )
     steps:
       - name: Run PR-Agent
-        uses: qodo-ai/pr-agent@d82f7d3e696cd00822694aaa3096265d3889f3f1
+        uses: Codium-ai/pr-agent@d82f7d3e696cd00822694aaa3096265d3889f3f1
         env:
           OPENAI_KEY: ${{ secrets.OPENAI_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
