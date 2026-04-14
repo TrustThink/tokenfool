@@ -1,0 +1,32 @@
+name: PR-Agent
+
+on:
+  pull_request:
+    types: [opened, reopened, ready_for_review]
+  issue_comment:
+    types: [created]
+
+permissions:
+  issues: write
+  pull-requests: write
+  contents: read
+
+jobs:
+  pr-agent:
+    name: PR-Agent Review
+    runs-on: ubuntu-latest
+    if: >
+      (github.event_name == 'pull_request' &&
+       github.event.pull_request.draft == false) ||
+      (github.event_name == 'issue_comment' &&
+       github.event.issue.pull_request &&
+       startsWith(github.event.comment.body, '/'))
+    steps:
+      - name: Run PR-Agent
+        uses: Codium-ai/pr-agent@main
+        env:
+          OPENAI_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_AGENT.PR_DESCRIPTION: "true"
+          PR_AGENT.PR_REVIEWER: "true"
+          PR_AGENT.PR_CODE_SUGGESTIONS: "true"
