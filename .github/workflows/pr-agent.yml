@@ -8,6 +8,7 @@ on:
 
 permissions:
   pull-requests: write
+  issues: write
   contents: read
 
 jobs:
@@ -34,4 +35,4 @@ jobs:
           PR_AGENT.PR_DESCRIPTION: "true"
           PR_AGENT.PR_REVIEWER: "true"
           PR_AGENT.PR_CODE_SUGGESTIONS: "true"
-          github_action_config.pr_actions: '["opened","reopened","ready_for_review","review_requested","synchronize"]'
+          github_action_config.pr_actions: '["opened","reopened","ready_for_review","synchronize"]'
